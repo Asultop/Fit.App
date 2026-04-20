@@ -1,18 +1,20 @@
 <template>
   <div class="app-shell" :data-section="activeSection">
-    <div class="ambient-orb ambient-orb-left"></div>
-    <div class="ambient-orb ambient-orb-right"></div>
+    <template v-if="!isAccessRoute">
+      <div class="ambient-orb ambient-orb-left"></div>
+      <div class="ambient-orb ambient-orb-right"></div>
 
-    <header class="app-header">
-      <p class="app-brand">Fit-Web</p>
-      <p class="app-subtitle">轻简小跑</p>
-    </header>
+      <header class="app-header">
+        <p class="app-brand">Fit</p>
+        <p class="app-subtitle">轻简小跑</p>
+      </header>
+    </template>
 
     <main class="app-content">
       <RouterView />
     </main>
 
-    <nav class="bottom-nav">
+    <nav v-if="!isAccessRoute" class="bottom-nav">
       <RouterLink class="bottom-nav-link" to="/">运动</RouterLink>
       <RouterLink class="bottom-nav-link" to="/editor">我的</RouterLink>
     </nav>
@@ -25,6 +27,7 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const activeSection = computed(() => (route.meta.section as string) ?? 'track')
+const isAccessRoute = computed(() => route.name === 'access')
 </script>
 
 <style scoped>
