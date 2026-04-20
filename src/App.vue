@@ -16,7 +16,7 @@
 
     <nav v-if="!isAccessRoute" class="bottom-nav">
       <RouterLink class="bottom-nav-link" to="/">运动</RouterLink>
-      <RouterLink class="bottom-nav-link" to="/editor">我的</RouterLink>
+      <RouterLink class="bottom-nav-link" to="/mine">我的</RouterLink>
     </nav>
   </div>
 </template>

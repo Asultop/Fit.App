@@ -24,8 +24,14 @@ const router = createRouter({
       meta: { section: 'track' },
     },
     {
-      path: '/editor',
+      path: '/mine',
       name: 'mine',
+      component: () => import('@/views/MineView.vue'),
+      meta: { section: 'mine' },
+    },
+    {
+      path: '/editor',
+      name: 'editor',
       component: () => import('@/views/TrackEditorView.vue'),
       meta: { section: 'mine' },
     },
