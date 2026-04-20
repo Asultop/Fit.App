@@ -1,10 +1,12 @@
 import { createStore } from 'vuex'
 
-import { cloneWorkout, createDefaultWorkout, type TrackPoint, type WorkoutData } from '@/types/workout'
+import { cloneWorkout, type TrackPoint, type WorkoutData } from '@/types/workout'
+import { loadWorkoutsFromFolder } from '@/utils/workout-folder'
 import { calculateAverageSpeedKmh, calculateDistanceKm, roundTo } from '@/utils/metrics'
 
 export interface RootState {
-  workout: WorkoutData
+  workouts: WorkoutData[]
+  selectedWorkoutId: string | null
 }
 
 function normalizeForStore(workout: WorkoutData): WorkoutData {
@@ -33,37 +35,106 @@ function normalizeForStore(workout: WorkoutData): WorkoutData {
   }
 }
 
+const initialWorkouts = loadWorkoutsFromFolder().map((workout) => normalizeForStore(workout))
+const firstWorkout = initialWorkouts[0] ?? null
+
 const store = createStore<RootState>({
   state: {
-    workout: normalizeForStore(createDefaultWorkout()),
+    workouts: initialWorkouts,
+    selectedWorkoutId: firstWorkout?.id ?? null,
   },
   getters: {
-    workout: (state) => state.workout,
+    workouts: (state) => state.workouts,
+    selectedWorkout: (state) =>
+      state.workouts.find((workout) => workout.id === state.selectedWorkoutId) ??
+      state.workouts[0] ??
+      null,
   },
   mutations: {
+    setWorkouts(state, payload: WorkoutData[]) {
+      const normalized = payload.map((workout) => normalizeForStore(workout))
+      state.workouts = normalized
+      state.selectedWorkoutId = normalized[0]?.id ?? null
+    },
+    addWorkout(state, payload: WorkoutData) {
+      const normalized = normalizeForStore(payload)
+      state.workouts = [normalized, ...state.workouts]
+      state.selectedWorkoutId = normalized.id
+    },
+    selectWorkout(state, workoutId: string) {
+      state.selectedWorkoutId = workoutId
+    },
     setWorkout(state, payload: WorkoutData) {
-      state.workout = normalizeForStore(payload)
+      const normalized = normalizeForStore(payload)
+      const index = state.workouts.findIndex((workout) => workout.id === normalized.id)
+
+      if (index >= 0) {
+        state.workouts.splice(index, 1, normalized)
+      } else {
+        state.workouts = [normalized, ...state.workouts]
+      }
+
+      state.selectedWorkoutId = normalized.id
     },
     mergeWorkout(state, payload: Partial<WorkoutData>) {
-      state.workout = normalizeForStore({
-        ...state.workout,
+      const current =
+        state.workouts.find((workout) => workout.id === state.selectedWorkoutId) ??
+        state.workouts[0]
+
+      if (!current) {
+        return
+      }
+
+      const merged = normalizeForStore({
+        ...current,
         ...payload,
       })
+
+      const index = state.workouts.findIndex((workout) => workout.id === merged.id)
+      if (index >= 0) {
+        state.workouts.splice(index, 1, merged)
+      }
     },
     setTrackPoints(state, payload: TrackPoint[]) {
-      state.workout = normalizeForStore({
-        ...state.workout,
+      const current =
+        state.workouts.find((workout) => workout.id === state.selectedWorkoutId) ??
+        state.workouts[0]
+
+      if (!current) {
+        return
+      }
+
+      const updated = normalizeForStore({
+        ...current,
         points: payload,
       })
+
+      const index = state.workouts.findIndex((workout) => workout.id === updated.id)
+      if (index >= 0) {
+        state.workouts.splice(index, 1, updated)
+      }
     },
     recalculateByPoints(state) {
-      const distance = calculateDistanceKm(state.workout.points)
-      const speed = calculateAverageSpeedKmh(distance, state.workout.totalDurationMin)
+      const current =
+        state.workouts.find((workout) => workout.id === state.selectedWorkoutId) ??
+        state.workouts[0]
 
-      state.workout = {
-        ...state.workout,
+      if (!current) {
+        return
+      }
+
+      const distance = calculateDistanceKm(current.points)
+      const speed = calculateAverageSpeedKmh(distance, current.totalDurationMin)
+
+      const updated = {
+        ...current,
         totalDistanceKm: distance,
         averageSpeedKmh: speed,
+      }
+
+      const index = state.workouts.findIndex((workout) => workout.id === updated.id)
+      if (index >= 0) {
+        state.workouts.splice(index, 1, normalizeForStore(updated))
       }
     },
   },

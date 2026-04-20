@@ -1,11 +1,11 @@
 <template>
-  <div class="app-shell">
+  <div class="app-shell" :data-section="activeSection">
     <div class="ambient-orb ambient-orb-left"></div>
     <div class="ambient-orb ambient-orb-right"></div>
 
     <header class="app-header">
       <p class="app-brand">Fit-Web</p>
-      <p class="app-subtitle">移动端运动轨迹管理</p>
+      <p class="app-subtitle">轻简小跑</p>
     </header>
 
     <main class="app-content">
@@ -13,13 +13,19 @@
     </main>
 
     <nav class="bottom-nav">
-      <RouterLink class="bottom-nav-link" to="/">轨迹</RouterLink>
-      <RouterLink class="bottom-nav-link" to="/editor">编辑</RouterLink>
+      <RouterLink class="bottom-nav-link" to="/">运动</RouterLink>
+      <RouterLink class="bottom-nav-link" to="/editor">我的</RouterLink>
     </nav>
   </div>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const activeSection = computed(() => (route.meta.section as string) ?? 'track')
+</script>
 
 <style scoped>
 .app-shell {
@@ -29,6 +35,43 @@
   min-height: 100vh;
   padding: 12px 14px 90px;
   overflow: hidden;
+  --accent-gradient: linear-gradient(135deg, #ff9f4a, #00a89d);
+  --accent-solid: #0e9a8f;
+  --button-soft: #e5efff;
+  --text-strong: #18324e;
+  --text-title: #142d45;
+  --text-muted: #2b3f54;
+  --surface-glass: rgba(255, 255, 255, 0.88);
+  --surface-plain: rgba(255, 255, 255, 0.76);
+  --surface-border: rgba(19, 26, 34, 0.12);
+  --surface-dash-border: rgba(27, 51, 79, 0.22);
+  --panel-bg: rgba(255, 255, 255, 0.86);
+  --panel-border: rgba(19, 26, 34, 0.1);
+  --panel-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
+  --input-border: #c8d5e8;
+  --card-border: #d1d8e0;
+  --danger-text: #a01717;
+  --danger-soft: #ffe9e9;
+}
+
+.app-shell[data-section='mine'] {
+  --accent-gradient: linear-gradient(135deg, #2d8bff, #20c997);
+  --accent-solid: #2d8bff;
+  --button-soft: #e8f2ff;
+  --text-strong: #13324b;
+  --text-title: #0f2a3d;
+  --text-muted: #335064;
+  --surface-glass: rgba(255, 255, 255, 0.92);
+  --surface-plain: rgba(255, 255, 255, 0.82);
+  --surface-border: rgba(20, 44, 64, 0.14);
+  --surface-dash-border: rgba(29, 63, 90, 0.24);
+  --panel-bg: rgba(255, 255, 255, 0.9);
+  --panel-border: rgba(22, 50, 72, 0.12);
+  --panel-shadow: 0 10px 22px rgba(20, 48, 70, 0.08);
+  --input-border: #c3d7f0;
+  --card-border: #cbd6e3;
+  --danger-text: #9a2c2c;
+  --danger-soft: #ffecec;
 }
 
 .ambient-orb {
@@ -115,7 +158,7 @@
 }
 
 .bottom-nav-link.router-link-active {
-  background: linear-gradient(135deg, #ff9f4a, #00a89d);
+  background: var(--accent-gradient);
   color: #fff;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
 }

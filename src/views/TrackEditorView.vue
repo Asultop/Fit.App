@@ -44,8 +44,14 @@
     </section>
 
     <section class="panel">
-      <h3>轨迹地图预览</h3>
-      <MapTrack :points="draft.points" :show-toolbar="true" />
+      <h3>轨迹地图选点（Leaflet）</h3>
+      <p class="map-tip">先在下方选中点位，再点击地图设置坐标。</p>
+      <LeafPointPicker
+        :points="draft.points"
+        :active-index="activePointIndex"
+        @select-point="setActivePoint"
+        @update-point="updatePointByMap"
+      />
     </section>
 
     <section class="panel">
@@ -59,16 +65,14 @@
           v-for="(point, index) in draft.points"
           :key="`${index}-${point.timestamp}`"
           class="point-item"
+          :class="{ 'is-active': index === activePointIndex }"
         >
-          <p class="point-title">点位 {{ index + 1 }}</p>
-          <label>
-            经度
-            <input v-model.number="point.lng" type="number" step="0.000001" />
-          </label>
-          <label>
-            纬度
-            <input v-model.number="point.lat" type="number" step="0.000001" />
-          </label>
+          <div class="point-head-row">
+            <p class="point-title">点位 {{ index + 1 }}</p>
+            <button class="pick-btn" type="button" @click="setActivePoint(index)">设为当前点</button>
+          </div>
+          <p class="point-coord">经度: {{ point.lng.toFixed(6) }}</p>
+          <p class="point-coord">纬度: {{ point.lat.toFixed(6) }}</p>
           <label>
             时间
             <input v-model="point.timestamp" type="text" placeholder="2026-04-20T06:30:00" />
@@ -84,22 +88,29 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 
-import MapTrack from '@/components/MapTrack.vue'
+import LeafPointPicker from '@/components/LeafPointPicker.vue'
 import type { RootState } from '@/store'
-import { cloneWorkout, type WorkoutData } from '@/types/workout'
+import { cloneWorkout, createDefaultWorkout, type WorkoutData } from '@/types/workout'
 import { calculateAverageSpeedKmh, calculateDistanceKm, roundTo } from '@/utils/metrics'
 import { normalizeWorkoutData, workoutToJson } from '@/utils/json'
 
 const store = useStore<RootState>()
-const sourceWorkout = computed(() => store.getters.workout as WorkoutData)
+const sourceWorkout = computed(() => store.getters.selectedWorkout as WorkoutData | null)
+const fallbackWorkout = createDefaultWorkout()
 
-const draft = reactive<WorkoutData>(cloneWorkout(sourceWorkout.value))
+const draft = reactive<WorkoutData>(cloneWorkout(sourceWorkout.value ?? fallbackWorkout))
+const activePointIndex = ref(0)
 const statusMessage = ref('编辑完成后点击“保存 JSON”，将自动下载并同步展示页。')
 
 watch(
   sourceWorkout,
   (nextWorkout) => {
+    if (!nextWorkout) {
+      return
+    }
+
     Object.assign(draft, cloneWorkout(nextWorkout))
+    activePointIndex.value = 0
   },
   { deep: true },
 )
@@ -108,12 +119,14 @@ function addPoint(): void {
   const lastPoint = draft.points[draft.points.length - 1]
 
   draft.points.push({
-    lng: roundTo(lastPoint ? lastPoint.lng + 0.002 : 116.397428, 6),
-    lat: roundTo(lastPoint ? lastPoint.lat + 0.001 : 39.90923, 6),
+    lng: roundTo(lastPoint ? lastPoint.lng + 0.002 : 126.50215136320409, 6),
+    lat: roundTo(lastPoint ? lastPoint.lat + 0.001 : 43.82136700270304, 6),
     timestamp: new Date().toISOString(),
   })
 
-  statusMessage.value = '已新增点位，可继续调整经纬度与时间。'
+  activePointIndex.value = draft.points.length - 1
+
+  statusMessage.value = '已新增点位，点击地图可设置该点坐标。'
 }
 
 function removePoint(index: number): void {
@@ -123,7 +136,32 @@ function removePoint(index: number): void {
   }
 
   draft.points.splice(index, 1)
+
+  if (activePointIndex.value >= draft.points.length) {
+    activePointIndex.value = draft.points.length - 1
+  }
+
+  if (activePointIndex.value < 0) {
+    activePointIndex.value = 0
+  }
+
   statusMessage.value = `已删除点位 ${index + 1}。`
+}
+
+function setActivePoint(index: number): void {
+  activePointIndex.value = index
+  statusMessage.value = `已选中点位 ${index + 1}，点击地图可更新其坐标。`
+}
+
+function updatePointByMap(payload: { index: number; lng: number; lat: number }): void {
+  const target = draft.points[payload.index]
+  if (!target) {
+    return
+  }
+
+  target.lng = roundTo(payload.lng, 6)
+  target.lat = roundTo(payload.lat, 6)
+  statusMessage.value = `点位 ${payload.index + 1} 坐标已更新。`
 }
 
 function recalculateDistanceByPoints(): void {
@@ -144,7 +182,8 @@ function recalculateSpeedByDuration(): void {
 }
 
 function resetDraft(): void {
-  Object.assign(draft, cloneWorkout(sourceWorkout.value))
+  Object.assign(draft, cloneWorkout(sourceWorkout.value ?? fallbackWorkout))
+  activePointIndex.value = 0
   statusMessage.value = '已重置为当前已保存的轨迹数据。'
 }
 
@@ -192,8 +231,8 @@ function saveJson(): void {
   gap: 8px;
   padding: 10px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(19, 26, 34, 0.12);
+  background: var(--surface-glass);
+  border: 1px solid var(--surface-border);
   backdrop-filter: blur(8px);
 }
 
@@ -201,14 +240,14 @@ function saveJson(): void {
   border: 0;
   border-radius: 10px;
   padding: 10px 8px;
-  background: #e5efff;
-  color: #18324e;
+  background: var(--button-soft);
+  color: var(--text-strong);
   font-size: 13px;
   font-weight: 600;
 }
 
 .btn-primary {
-  background: linear-gradient(120deg, #f68b3e, #00a7a1);
+  background: var(--accent-gradient);
   color: #fff;
 }
 
@@ -217,23 +256,29 @@ function saveJson(): void {
   padding: 10px 12px;
   border-radius: 10px;
   font-size: 13px;
-  color: #1b334f;
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px dashed rgba(27, 51, 79, 0.22);
+  color: var(--text-strong);
+  background: var(--surface-plain);
+  border: 1px dashed var(--surface-dash-border);
 }
 
 .panel {
   border-radius: 16px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(19, 26, 34, 0.1);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
 }
 
 .panel h3 {
   margin: 0 0 12px;
   font-size: 16px;
-  color: #142d45;
+  color: var(--text-title);
+}
+
+.map-tip {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .field-grid {
@@ -247,15 +292,15 @@ label {
   flex-direction: column;
   gap: 6px;
   font-size: 12px;
-  color: #2b3f54;
+  color: var(--text-muted);
 }
 
 input {
-  border: 1px solid #c8d5e8;
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 14px;
-  color: #1d2935;
+  color: var(--text-strong);
   background: #fff;
 }
 
@@ -273,7 +318,7 @@ input {
   color: #fff;
   font-size: 13px;
   font-weight: 600;
-  background: #0e9a8f;
+  background: var(--accent-solid);
 }
 
 .point-list {
@@ -284,7 +329,7 @@ input {
 }
 
 .point-item {
-  border: 1px solid #d1d8e0;
+  border: 1px solid var(--card-border);
   border-radius: 10px;
   padding: 10px;
   display: flex;
@@ -293,19 +338,47 @@ input {
   background: #fff;
 }
 
+.point-item.is-active {
+  border-color: rgba(21, 112, 201, 0.55);
+  box-shadow: 0 6px 14px rgba(19, 76, 127, 0.12);
+}
+
+.point-head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
 .point-title {
   margin: 0;
   font-size: 13px;
   font-weight: 700;
-  color: #1f3651;
+  color: var(--text-title);
+}
+
+.pick-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent-gradient);
+}
+
+.point-coord {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .remove-btn {
   border: 0;
   border-radius: 8px;
   padding: 8px;
-  color: #a01717;
-  background: #ffe9e9;
+  color: var(--danger-text);
+  background: var(--danger-soft);
   font-size: 13px;
 }
 

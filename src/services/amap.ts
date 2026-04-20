@@ -6,6 +6,9 @@ export interface AMapMapInstance {
   add: (overlay: unknown) => void
   remove: (overlay: unknown) => void
   setFitView: (overlays?: unknown[]) => void
+  setCenter: (center: AMapPath) => void
+  on: (eventName: string, handler: (event: any) => void) => void
+  off: (eventName: string, handler: (event: any) => void) => void
   addControl: (control: unknown) => void
   destroy: () => void
 }
@@ -14,9 +17,14 @@ export interface AMapPolylineInstance {
   setPath: (path: AMapPath[]) => void
 }
 
+export interface AMapMarkerInstance {
+  on: (eventName: string, handler: () => void) => void
+}
+
 export interface AMapNamespace {
   Map: new (container: HTMLElement, options: Record<string, unknown>) => AMapMapInstance
   Polyline: new (options: Record<string, unknown>) => AMapPolylineInstance
+  Marker: new (options: Record<string, unknown>) => AMapMarkerInstance
   ToolBar: new () => unknown
 }
 

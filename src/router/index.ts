@@ -7,11 +7,19 @@ const router = createRouter({
       path: '/',
       name: 'track',
       component: () => import('@/views/TrackView.vue'),
+      meta: { section: 'track' },
+    },
+    {
+      path: '/track/:id',
+      name: 'track-detail',
+      component: () => import('@/views/TrackDetailView.vue'),
+      meta: { section: 'track' },
     },
     {
       path: '/editor',
-      name: 'editor',
+      name: 'mine',
       component: () => import('@/views/TrackEditorView.vue'),
+      meta: { section: 'mine' },
     },
   ],
 })

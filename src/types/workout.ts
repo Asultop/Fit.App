@@ -16,11 +16,11 @@ export interface WorkoutData {
 }
 
 const demoPoints: TrackPoint[] = [
-  { lng: 120.1273, lat: 30.2741, timestamp: '2026-04-20T06:30:00' },
-  { lng: 120.1316, lat: 30.2732, timestamp: '2026-04-20T06:34:00' },
-  { lng: 120.1378, lat: 30.2718, timestamp: '2026-04-20T06:38:00' },
-  { lng: 120.1412, lat: 30.2694, timestamp: '2026-04-20T06:42:00' },
-  { lng: 120.1455, lat: 30.2671, timestamp: '2026-04-20T06:46:00' },
+  { lng: 126.502151, lat: 43.821367, timestamp: '2026-04-20T06:30:00' },
+  { lng: 126.504951, lat: 43.822067, timestamp: '2026-04-20T06:34:00' },
+  { lng: 126.507451, lat: 43.822667, timestamp: '2026-04-20T06:38:00' },
+  { lng: 126.509951, lat: 43.821967, timestamp: '2026-04-20T06:42:00' },
+  { lng: 126.511951, lat: 43.821167, timestamp: '2026-04-20T06:46:00' },
 ]
 
 function createId(): string {

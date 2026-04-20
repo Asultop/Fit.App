@@ -2,104 +2,53 @@
   <section class="track-page">
     <header class="hero-card">
       <h2>运动轨迹</h2>
-      <p>{{ `${workout.date} ${workout.startTime}` }}</p>
+      <p>轨迹列表（一级菜单）</p>
     </header>
 
-    <MapTrack :points="workout.points" @map-tap="handleMapTap" />
+    <section class="list-card">
+      <div class="list-header">
+        <h3>轨迹列表</h3>
+      </div>
 
-    <input
-      ref="fileInputRef"
-      class="hidden-input"
-      type="file"
-      accept="application/json"
-      @change="handleFileChange"
-    />
-
-    <section class="metrics-grid">
-      <MetricCard
-        v-for="metric in metricItems"
-        :key="metric.label"
-        :label="metric.label"
-        :value="metric.value"
-      />
+      <div v-if="workouts.length" class="track-list">
+        <button
+          v-for="workoutItem in workouts"
+          :key="workoutItem.id"
+          class="track-item"
+          type="button"
+          @click="openTrackDetail(workoutItem.id)"
+        >
+          <div>
+            <p class="track-title">{{ workoutItem.date }}</p>
+            <p class="track-subtitle">{{ workoutItem.startTime }}</p>
+          </div>
+          <div class="track-stats">
+            <span>{{ workoutItem.totalDistanceKm.toFixed(2) }} km</span>
+            <span>{{ workoutItem.totalDurationMin.toFixed(0) }} 分钟</span>
+          </div>
+        </button>
+      </div>
+      <p v-else class="empty-text">暂无运动轨迹数据。</p>
     </section>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 
-import MapTrack from '@/components/MapTrack.vue'
-import MetricCard from '@/components/MetricCard.vue'
 import type { RootState } from '@/store'
 import type { WorkoutData } from '@/types/workout'
-import { parseWorkoutFile } from '@/utils/json'
 
 const store = useStore<RootState>()
-const fileInputRef = ref<HTMLInputElement | null>(null)
+const router = useRouter()
 
-let tapCounter = 0
-let tapTimer = 0
-
-const workout = computed(() => store.getters.workout as WorkoutData)
-
-const metricItems = computed(() => [
-  {
-    label: '总距离',
-    value: `${workout.value.totalDistanceKm.toFixed(2)} km`,
-  },
-  {
-    label: '总时间',
-    value: `${workout.value.totalDurationMin.toFixed(0)} 分钟`,
-  },
-  {
-    label: '平均速度',
-    value: `${workout.value.averageSpeedKmh.toFixed(2)} km/h`,
-  },
-  {
-    label: '步频',
-    value: `${workout.value.cadenceSpm.toFixed(0)} spm`,
-  },
-])
-
-function handleMapTap(): void {
-  // 700ms 内累计 3 次点击，触发导入文件动作。
-  tapCounter += 1
-  window.clearTimeout(tapTimer)
-
-  tapTimer = window.setTimeout(() => {
-    tapCounter = 0
-  }, 700)
-
-  if (tapCounter === 3) {
-    tapCounter = 0
-    window.clearTimeout(tapTimer)
-    fileInputRef.value?.click()
-  }
+const workouts = computed(() => store.getters.workouts as WorkoutData[])
+function openTrackDetail(workoutId: string): void {
+  store.commit('selectWorkout', workoutId)
+  void router.push({ name: 'track-detail', params: { id: workoutId } })
 }
-
-async function handleFileChange(event: Event): Promise<void> {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-
-  if (!file) {
-    return
-  }
-
-  try {
-    const importedWorkout = await parseWorkoutFile(file)
-    store.commit('setWorkout', importedWorkout)
-  } catch (error) {
-    console.error('导入运动轨迹失败：', error)
-  } finally {
-    input.value = ''
-  }
-}
-
-onBeforeUnmount(() => {
-  window.clearTimeout(tapTimer)
-})
 </script>
 
 <style scoped>
@@ -130,14 +79,85 @@ onBeforeUnmount(() => {
   font-size: 14px;
 }
 
-.hidden-input {
-  display: none;
+.list-card {
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(19, 26, 34, 0.12);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
 }
 
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.list-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #102638;
+}
+
+.track-list {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+}
+
+.track-item {
+  border: 1px solid rgba(27, 42, 58, 0.12);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.track-item:hover {
+  border-color: rgba(18, 156, 147, 0.6);
+  box-shadow: 0 10px 22px rgba(16, 48, 67, 0.12);
+  transform: translateY(-1px);
+}
+
+.track-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #162b3c;
+}
+
+.track-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #516173;
+}
+
+.track-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 12px;
+  gap: 4px;
+  color: #223547;
+  font-weight: 600;
+}
+
+.empty-text {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #4a5a6c;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px dashed rgba(32, 48, 64, 0.16);
 }
 
 @keyframes page-fade {
