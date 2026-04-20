@@ -7,9 +7,10 @@ import { calculateAverageSpeedKmh, calculateDistanceKm, roundTo } from '@/utils/
 export interface RootState {
   workouts: WorkoutData[]
   selectedWorkoutId: string | null
+  showAllTracks: boolean
 }
 
-const DISPLAY_RANGE_START = '2026-04-18'
+const DISPLAY_RANGE_START = '2026-04-15'
 const DISPLAY_RANGE_END = '2026-07-22'
 
 function parseWorkoutDateTime(workout: WorkoutData): Date | null {
@@ -23,11 +24,13 @@ function parseWorkoutDateTime(workout: WorkoutData): Date | null {
   return dateTime
 }
 
-function filterDisplayWorkouts(workouts: WorkoutData[]): WorkoutData[] {
+function filterDisplayWorkouts(workouts: WorkoutData[], showAllTracks: boolean): WorkoutData[] {
   const rangeStart = new Date(`${DISPLAY_RANGE_START}T00:00:00`)
   const rangeEnd = new Date(`${DISPLAY_RANGE_END}T23:59:59`)
   const now = new Date()
-  const effectiveRangeEnd = now.getTime() < rangeEnd.getTime() ? now : rangeEnd
+  const effectiveEnd = showAllTracks
+    ? rangeEnd
+    : new Date(Math.min(rangeEnd.getTime(), now.getTime()))
 
   return workouts
     .map((workout) => ({
@@ -36,7 +39,7 @@ function filterDisplayWorkouts(workouts: WorkoutData[]): WorkoutData[] {
     }))
     .filter(
       (item): item is { workout: WorkoutData; dateTime: Date } =>
-        item.dateTime !== null && item.dateTime >= rangeStart && item.dateTime <= effectiveRangeEnd,
+        item.dateTime !== null && item.dateTime >= rangeStart && item.dateTime <= effectiveEnd,
     )
     .sort((left, right) => right.dateTime.getTime() - left.dateTime.getTime())
     .map((item) => item.workout)
@@ -75,9 +78,11 @@ const store = createStore<RootState>({
   state: {
     workouts: initialWorkouts,
     selectedWorkoutId: firstWorkout?.id ?? null,
+    showAllTracks: false,
   },
   getters: {
-    workouts: (state) => filterDisplayWorkouts(state.workouts),
+    workouts: (state) => filterDisplayWorkouts(state.workouts, state.showAllTracks),
+    showAllTracks: (state) => state.showAllTracks,
     selectedWorkout: (state, getters) => {
       const visibleWorkouts = getters.workouts as WorkoutData[]
 
@@ -101,6 +106,9 @@ const store = createStore<RootState>({
     },
     selectWorkout(state, workoutId: string) {
       state.selectedWorkoutId = workoutId
+    },
+    setShowAllTracks(state, payload: boolean) {
+      state.showAllTracks = payload
     },
     setWorkout(state, payload: WorkoutData) {
       const normalized = normalizeForStore(payload)

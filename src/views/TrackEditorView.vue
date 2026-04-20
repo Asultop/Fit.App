@@ -13,6 +13,13 @@
 
     <p class="status-text">{{ statusMessage }}</p>
 
+    <section class="panel option-panel">
+      <label class="toggle-field">
+        <input type="checkbox" :checked="showAllTracks" @change="handleShowAllTracksChange" />
+        <span>显示全部轨迹（默认仅显示截止当前的轨迹）</span>
+      </label>
+    </section>
+
     <section class="panel">
       <h3>基础运动数据</h3>
       <div class="field-grid">
@@ -101,6 +108,7 @@ const fallbackWorkout = createDefaultWorkout()
 const draft = reactive<WorkoutData>(cloneWorkout(sourceWorkout.value ?? fallbackWorkout))
 const activePointIndex = ref(0)
 const statusMessage = ref('编辑完成后点击“保存 JSON”，将自动下载并同步展示页。')
+const showAllTracks = computed(() => store.getters.showAllTracks as boolean)
 
 watch(
   sourceWorkout,
@@ -162,6 +170,11 @@ function updatePointByMap(payload: { index: number; lng: number; lat: number }):
   target.lng = roundTo(payload.lng, 6)
   target.lat = roundTo(payload.lat, 6)
   statusMessage.value = `点位 ${payload.index + 1} 坐标已更新。`
+}
+
+function handleShowAllTracksChange(event: Event): void {
+  const checked = (event.target as HTMLInputElement).checked
+  store.commit('setShowAllTracks', checked)
 }
 
 function recalculateDistanceByPoints(): void {
@@ -273,6 +286,24 @@ function saveJson(): void {
   margin: 0 0 12px;
   font-size: 16px;
   color: var(--text-title);
+}
+
+.option-panel {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-strong);
+}
+
+.toggle-field input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
 }
 
 .map-tip {

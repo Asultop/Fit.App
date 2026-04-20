@@ -1,10 +1,14 @@
 <template>
   <section class="detail-page">
     <header class="detail-header">
-      <button class="back-btn" type="button" @click="goBack"><</button>
-      <h2>轨迹详情</h2>
-      <p v-if="selectedWorkout">{{ `${selectedWorkout.date} ${selectedWorkout.startTime}` }}</p>
-      <p v-else>未找到对应轨迹，请返回列表重新选择。</p>
+      <div class="detail-header-main">
+        <button class="back-btn" type="button" @click="goBack"><</button>
+        <div class="detail-title-wrap">
+          <h2>轨迹详情</h2>
+          <p v-if="selectedWorkout">{{ `${selectedWorkout.date} ${selectedWorkout.startTime}` }}</p>
+          <p v-else>未找到对应轨迹，请返回列表重新选择。</p>
+        </div>
+      </div>
     </header>
 
     <section v-if="selectedWorkout" class="detail-body">
@@ -108,19 +112,36 @@ watch(
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
+.detail-header-main {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
 .back-btn {
   border: 0;
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-size: 13px;
+  border-radius: 10px;
+  min-width: 36px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  font-size: 16px;
   font-weight: 600;
   color: #fff;
   background: linear-gradient(135deg, #f79042, #12a89f);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
 }
 
+.detail-title-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .detail-header h2 {
-  margin: 12px 0 0;
+  margin: 0;
   font-size: 24px;
 }
 

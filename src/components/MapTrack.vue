@@ -120,20 +120,53 @@ function smoothSegmentSpeeds(points: TrackPoint[]): number[] {
   })
 }
 
+function hexToRgb(hex: string): [number, number, number] {
+  const normalized = hex.replace('#', '')
+  const red = Number.parseInt(normalized.slice(0, 2), 16)
+  const green = Number.parseInt(normalized.slice(2, 4), 16)
+  const blue = Number.parseInt(normalized.slice(4, 6), 16)
+
+  return [red, green, blue]
+}
+
+function rgbToHex(red: number, green: number, blue: number): string {
+  const toHex = (value: number) => Math.round(clamp(value, 0, 255)).toString(16).padStart(2, '0')
+  return `#${toHex(red)}${toHex(green)}${toHex(blue)}`
+}
+
+function interpolateColor(leftColor: string, rightColor: string, ratio: number): string {
+  const [leftRed, leftGreen, leftBlue] = hexToRgb(leftColor)
+  const [rightRed, rightGreen, rightBlue] = hexToRgb(rightColor)
+  const t = clamp(ratio, 0, 1)
+
+  return rgbToHex(
+    leftRed + (rightRed - leftRed) * t,
+    leftGreen + (rightGreen - leftGreen) * t,
+    leftBlue + (rightBlue - leftBlue) * t,
+  )
+}
+
 function speedToColor(speedKmh: number): string {
-  if (speedKmh < 8.5) {
-    return '#1d4ed8'
+  const clampedSpeed = clamp(speedKmh, 4, 16)
+  const colorStops = [
+    { speed: 4, color: '#1d4ed8' },
+    { speed: 8.5, color: '#0e9f87' },
+    { speed: 9.5, color: '#f59e0b' },
+    { speed: 10.5, color: '#e5484d' },
+    { speed: 16, color: '#b91c1c' },
+  ]
+
+  for (let index = 1; index < colorStops.length; index += 1) {
+    const left = colorStops[index - 1]
+    const right = colorStops[index]
+
+    if (clampedSpeed <= right.speed) {
+      const ratio = (clampedSpeed - left.speed) / (right.speed - left.speed)
+      return interpolateColor(left.color, right.color, ratio)
+    }
   }
 
-  if (speedKmh < 9.5) {
-    return '#0e9f87'
-  }
-
-  if (speedKmh < 10.5) {
-    return '#f59e0b'
-  }
-
-  return '#e5484d'
+  return colorStops[colorStops.length - 1].color
 }
 
 function cornerIntensity(previous: AMapPath, current: AMapPath, next: AMapPath): number {
