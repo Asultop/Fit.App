@@ -5,16 +5,8 @@ const projectRoot = process.cwd()
 const tracksDir = path.join(projectRoot, 'src', 'tracks')
 
 const TARGET_LAPS = 4
-
-const targetDays = [
-  { date: '2026-04-17', startTime: '06:16', cadenceSpm: 166, targetSpeedKmh: 8.9 },
-  { date: '2026-04-18', startTime: '06:22', cadenceSpm: 167, targetSpeedKmh: 9.0 },
-  { date: '2026-04-20', startTime: '06:28', cadenceSpm: 170, targetSpeedKmh: 9.5 },
-  { date: '2026-04-21', startTime: '19:06', cadenceSpm: 173, targetSpeedKmh: 10.1 },
-  { date: '2026-04-22', startTime: '06:33', cadenceSpm: 168, targetSpeedKmh: 8.7 },
-  { date: '2026-04-23', startTime: '18:52', cadenceSpm: 176, targetSpeedKmh: 9.9 },
-  { date: '2026-04-24', startTime: '06:24', cadenceSpm: 169, targetSpeedKmh: 9.2 },
-]
+const RANGE_START = '2026-04-18'
+const RANGE_END = '2026-07-22'
 
 const baseLoopPoints = [
   [126.502238, 43.821622],
@@ -69,6 +61,56 @@ function hashString(value) {
     hash = Math.imul(hash, 16777619)
   }
   return hash >>> 0
+}
+
+function formatDateOnly(dateObj) {
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function buildTargetDays(startIsoDate, endIsoDate) {
+  const startDate = new Date(`${startIsoDate}T00:00:00`)
+  const endDate = new Date(`${endIsoDate}T00:00:00`)
+  const targetDays = []
+
+  for (
+    const cursor = new Date(startDate);
+    cursor.getTime() <= endDate.getTime();
+    cursor.setDate(cursor.getDate() + 1)
+  ) {
+    const weekDay = cursor.getDay()
+    const isWednesdayOrFriday = weekDay === 3 || weekDay === 5
+
+    if (!isWednesdayOrFriday) {
+      continue
+    }
+
+    const date = formatDateOnly(cursor)
+    const rng = mulberry32(hashString(`config-${date}`))
+    const hour = rng() < 0.84 ? 21 : 22
+    const minute = Math.floor(rng() * 60)
+
+    targetDays.push({
+      date,
+      startTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+      cadenceSpm: Math.round(165 + rng() * 12),
+      targetSpeedKmh: roundTo(8.7 + rng() * 1.7, 1),
+    })
+  }
+
+  return targetDays
+}
+
+function clearOldTrackFiles() {
+  const trackFiles = fs
+    .readdirSync(tracksDir)
+    .filter((fileName) => /^workout-\d{4}-\d{2}-\d{2}\.json$/i.test(fileName))
+
+  trackFiles.forEach((fileName) => {
+    fs.unlinkSync(path.join(tracksDir, fileName))
+  })
 }
 
 function mulberry32(seed) {
@@ -178,6 +220,9 @@ function withTimestamps(points, date, startTime, durationMin) {
     timestamp: formatDateTimeLocal(new Date(start.getTime() + stepMs * index)),
   }))
 }
+
+const targetDays = buildTargetDays(RANGE_START, RANGE_END)
+clearOldTrackFiles()
 
 const reports = []
 

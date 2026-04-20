@@ -9,6 +9,39 @@ export interface RootState {
   selectedWorkoutId: string | null
 }
 
+const DISPLAY_RANGE_START = '2026-04-18'
+const DISPLAY_RANGE_END = '2026-07-22'
+
+function parseWorkoutDateTime(workout: WorkoutData): Date | null {
+  const fallbackStartTime = '00:00'
+  const dateTime = new Date(`${workout.date}T${workout.startTime || fallbackStartTime}:00`)
+
+  if (Number.isNaN(dateTime.getTime())) {
+    return null
+  }
+
+  return dateTime
+}
+
+function filterDisplayWorkouts(workouts: WorkoutData[]): WorkoutData[] {
+  const rangeStart = new Date(`${DISPLAY_RANGE_START}T00:00:00`)
+  const rangeEnd = new Date(`${DISPLAY_RANGE_END}T23:59:59`)
+  const now = new Date()
+  const effectiveRangeEnd = now.getTime() < rangeEnd.getTime() ? now : rangeEnd
+
+  return workouts
+    .map((workout) => ({
+      workout,
+      dateTime: parseWorkoutDateTime(workout),
+    }))
+    .filter(
+      (item): item is { workout: WorkoutData; dateTime: Date } =>
+        item.dateTime !== null && item.dateTime >= rangeStart && item.dateTime <= effectiveRangeEnd,
+    )
+    .sort((left, right) => right.dateTime.getTime() - left.dateTime.getTime())
+    .map((item) => item.workout)
+}
+
 function normalizeForStore(workout: WorkoutData): WorkoutData {
   const points = workout.points.map((point) => ({
     lng: Number(point.lng),
@@ -44,11 +77,16 @@ const store = createStore<RootState>({
     selectedWorkoutId: firstWorkout?.id ?? null,
   },
   getters: {
-    workouts: (state) => state.workouts,
-    selectedWorkout: (state) =>
-      state.workouts.find((workout) => workout.id === state.selectedWorkoutId) ??
-      state.workouts[0] ??
-      null,
+    workouts: (state) => filterDisplayWorkouts(state.workouts),
+    selectedWorkout: (state, getters) => {
+      const visibleWorkouts = getters.workouts as WorkoutData[]
+
+      return (
+        visibleWorkouts.find((workout) => workout.id === state.selectedWorkoutId) ??
+        visibleWorkouts[0] ??
+        null
+      )
+    },
   },
   mutations: {
     setWorkouts(state, payload: WorkoutData[]) {
