@@ -1,0 +1,29 @@
+:root {
+  font-family: 'DIN Alternate', 'Avenir Next', 'Noto Sans SC', 'PingFang SC', sans-serif;
+  color: #131a22;
+  background:
+    radial-gradient(circle at 10% 10%, #ffd9b5 0%, transparent 44%),
+    radial-gradient(circle at 90% 15%, #b8f1e9 0%, transparent 34%),
+    linear-gradient(160deg, #fdf6ec 0%, #eef7ff 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: #131a22;
+  background: transparent;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+a {
+  color: inherit;
+}
