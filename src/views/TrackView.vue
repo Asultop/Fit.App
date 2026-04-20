@@ -2,7 +2,7 @@
   <section class="track-page">
     <header class="hero-card">
       <h2>运动轨迹</h2>
-      <p>轨迹列表（一级菜单）</p>
+      <p>轨迹列表</p>
     </header>
 
     <section class="list-card">
